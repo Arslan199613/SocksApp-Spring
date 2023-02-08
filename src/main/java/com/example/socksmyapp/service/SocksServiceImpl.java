@@ -6,7 +6,6 @@ import com.example.socksmyapp.model.Size;
 import com.example.socksmyapp.model.Socks;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -102,8 +101,8 @@ public class SocksServiceImpl implements SocksService {
     }
 
     @Override
-    public Collection<Socks> getListSocks() {
-       return socksMap.values();
+    public Map<Long,Socks> getListSocks() {
+        return Map.copyOf(socksMap);
     }
 }
 

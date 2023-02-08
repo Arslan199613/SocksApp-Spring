@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.util.Collection;
+import java.util.Map;
 
 
 @RestController
@@ -65,8 +66,8 @@ public class SocksController {
 
     @Operation(summary = "Получение списка носков")
     @GetMapping("/all")
-    public ResponseEntity<Collection<Socks>> getAllSocks() {
-        Collection<Socks> listSocks = socksService.getListSocks();
+    public ResponseEntity<Map<Long,Socks>> getAllSocks() {
+        Map<Long, Socks> listSocks = socksService.getListSocks();
         if (listSocks != null) {
             return ResponseEntity.ok(listSocks);
         } else {

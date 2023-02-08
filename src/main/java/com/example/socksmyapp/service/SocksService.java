@@ -6,6 +6,7 @@ import com.example.socksmyapp.model.Size;
 import com.example.socksmyapp.model.Socks;
 
 import java.util.Collection;
+import java.util.Map;
 
 public interface SocksService {
 
@@ -19,5 +20,6 @@ public interface SocksService {
     int getSocksQuantity(Color color, Size size, Integer minCottonPercent,
                          Integer maxCottonPercent);
 
-    Collection<Socks> getListSocks();
+
+    Map<Long,Socks> getListSocks();
 }
