@@ -1,19 +1,45 @@
 package com.example.socksmyapp.service;
-
-import com.example.socksmyapp.exception.MyException;
+import com.example.socksmyapp.exception.NumberOfSocksException;
 import com.example.socksmyapp.model.Color;
 import com.example.socksmyapp.model.Size;
 import com.example.socksmyapp.model.Socks;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.TreeMap;
 
 @Service
 public class SocksServiceImpl implements SocksService {
 
-    private final Map<Long, Socks> socksMap = new TreeMap<>();
-    private static long id = 1;
+    private Map<Long, Socks> socksMap = new TreeMap<>();
+    private static long id = 0;
+
+    private FilesService filesService;
+
+    public SocksServiceImpl( FilesService filesService) {
+        this.filesService = filesService;
+    }
+
+    @PostConstruct
+    private void init() {
+        try {
+            readFromFile();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     public long createSocks(Socks socks)  {
@@ -31,12 +57,13 @@ public class SocksServiceImpl implements SocksService {
             }
         } else {
             socksMap.put(id, socks);
+            saveToFile();
         }
         return id++;
     }
 
     @Override
-    public void getFromTheWarehouse(Socks socks) throws MyException {
+    public void getFromTheWarehouse(Socks socks) throws NumberOfSocksException {
         if (socksMap.containsValue(socks)) {
             for (Map.Entry<Long, Socks> entry : socksMap.entrySet()) {
                 if (entry.getValue().equals(socks)) {
@@ -48,8 +75,9 @@ public class SocksServiceImpl implements SocksService {
                         Socks socksNew = new Socks(socks.getColor(), socks.getSize(), socks.getCottonPercent(),
                                 quantity);
                         socksMap.put(id, socksNew);
+                        saveToFile();
                     } else {
-                        throw new MyException("в запросе получилось больше носков,чем есть на складе");
+                        throw new NumberOfSocksException("В запросе получилось больше носков,чем есть на складе");
                     }
                 }
             }
@@ -74,12 +102,13 @@ public class SocksServiceImpl implements SocksService {
                 continue;
             }
             count += entry.getValue().getQuantity();
+            saveToFile();
         }
         return count;
     }
 
     @Override
-    public void removeSocks(Color color, Size size, int cottonPercent, int quantity) throws MyException {
+    public void removeSocks(Color color, Size size, int cottonPercent, int quantity) throws NumberOfSocksException {
         Socks socks = new Socks(color, size, cottonPercent, quantity);
         if (socksMap.containsValue(socks)) {
             for (Map.Entry<Long, Socks> entry : socksMap.entrySet()) {
@@ -92,8 +121,9 @@ public class SocksServiceImpl implements SocksService {
                         Socks newSocks = new Socks(socks.getColor(), socks.getSize(), socks.getCottonPercent(),
                                 newQuantity);
                      socksMap.put(id, newSocks);
+                     saveToFile();
                     } else {
-                        throw new MyException("Пусто");
+                        throw new NumberOfSocksException("На складе нет носков");
                     }
                 }
             }
@@ -104,5 +134,57 @@ public class SocksServiceImpl implements SocksService {
     public Map<Long,Socks> getListSocks() {
         return Map.copyOf(socksMap);
     }
+
+    private void saveToFile() {
+        try {
+            DataFile dataFile = new DataFile(id+1,socksMap);
+            String json = new ObjectMapper().writeValueAsString(dataFile);
+            filesService.saveToFile(json);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void readFromFile() {
+        try {
+            String json = filesService.readFromFile();
+            DataFile dataFile = new ObjectMapper().readValue(json, new TypeReference<DataFile>() {
+            });
+            id = dataFile.socksId;
+            socksMap = dataFile.getSocksMap();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @Override
+    public Path createReport() throws IOException {
+        Path socksText = filesService.createTempFile("Socks_text");
+        for (Socks socks : socksMap.values()) {
+            try (Writer writer = Files.newBufferedWriter(socksText, StandardOpenOption.APPEND)) {
+                writer.append(" Цвет носков : ");
+                writer.append(String.valueOf(socks.getColor()));
+                writer.append("\n Размер : ");
+                writer.append(String.valueOf(socks.getSize()));
+                writer.append("\n Процент хлопка: ");
+                writer.append(String.valueOf(socks.getCottonPercent()));
+                writer.append("\n Количество: ");
+                writer.append(String.valueOf(socks.getQuantity()));
+                writer.append("\n\n");
+            }
+        }
+        return socksText;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @EqualsAndHashCode
+    private static class DataFile {
+
+        private long socksId;
+        private Map<Long,Socks> socksMap;
+
+    }
 }
+
 
