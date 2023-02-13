@@ -1,0 +1,17 @@
+{
+  "socksId": 2,
+  "socksMap": {
+    "0": {
+      "color": "BLACK",
+      "size": "S",
+      "cottonPercent": 30,
+      "quantity": 100
+    },
+    "1": {
+      "color": "RED",
+      "size": "M",
+      "cottonPercent": 50,
+      "quantity": 150
+    }
+  }
+}
